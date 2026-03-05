@@ -7,6 +7,12 @@ A terminal UI for AWS Systems Manager Parameter Store built with `ratatui` and t
 ## Installation
 - `cargo install ssmtui` or `cargo install ssmtui --locked`
 
+## Screenshots
+<img width="1800" height="1169" alt="Screenshot 2026-03-05 at 14 11 16" src="https://github.com/user-attachments/assets/681e12ac-9e0b-4ee6-b0d9-68a83bb7f3f9" />
+<img width="1800" height="1169" alt="Screenshot 2026-03-05 at 14 12 39" src="https://github.com/user-attachments/assets/fe83ac10-2371-4e7c-9923-9118ba738cbc" />
+
+
+
 ## Features
 
 - Browse Parameter Store names in a left panel
