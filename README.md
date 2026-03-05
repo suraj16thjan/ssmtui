@@ -4,6 +4,9 @@ A terminal UI for AWS Systems Manager Parameter Store built with `ratatui` and t
 
 `ssmtui` lets you browse, filter, view, edit, create, refresh, and copy parameter values directly from your terminal.
 
+## Installation
+- `cargo install ssmtui` or `cargo install ssmtui --locked`
+
 ## Features
 
 - Browse Parameter Store names in a left panel
