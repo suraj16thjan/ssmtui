@@ -71,7 +71,8 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 continue;
             };
             if key.kind == KeyEventKind::Press
-                && matches!(key.code, KeyCode::Char('q') | KeyCode::Esc)
+                && key.modifiers.contains(KeyModifiers::CONTROL)
+                && matches!(key.code, KeyCode::Char('c'))
             {
                 return Ok(());
             }
@@ -240,7 +241,11 @@ fn run_app_loop(
                 }
             } else {
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                    KeyCode::Char('c')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        return Ok(())
+                    }
                     KeyCode::Char('/') => app.start_search(),
                     KeyCode::Char('a') => app.start_create(),
                     KeyCode::Char('R') => app.start_full_refresh(),

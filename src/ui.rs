@@ -60,7 +60,7 @@ pub fn draw_loading(frame: &mut ratatui::Frame<'_>, spinner: &str, elapsed_secs:
             Style::default().fg(FG_NORMAL),
         )),
         Line::from(Span::styled(
-            "Press q or Esc to quit",
+            "Press Ctrl+C to quit",
             Style::default().fg(FG_NORMAL),
         )),
     ];
@@ -258,7 +258,7 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
             Span::raw(" Edit"),
             Span::raw("   "),
             Span::styled(
-                "<q>",
+                "<C-c>",
                 Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Quit"),
@@ -281,7 +281,7 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
     );
 
     frame.render_widget(
-        Paragraph::new("</> search/filter  <R> refresh all  <a> add new  <y> yank  <e> edit  <q> quit")
+        Paragraph::new("</> search/filter  <R> refresh all  <a> add new  <y> yank  <e> edit  <C-c> quit")
             .style(Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD))
             .alignment(Alignment::Right),
         rows[6],
