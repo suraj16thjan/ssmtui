@@ -6,7 +6,9 @@ mod text_edit;
 mod ui;
 
 use std::{
+    env,
     io,
+    process::Command,
     sync::mpsc,
     thread,
     time::{Duration, Instant},
@@ -29,7 +31,96 @@ use text_edit::{
 };
 use ui::{draw, draw_loading};
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+fn print_help() {
+    println!(
+        "\
+ssmtui {VERSION} — Terminal UI for AWS SSM Parameter Store
+
+USAGE:
+    ssmtui [OPTIONS]
+    ssmtui [COMMAND]
+
+COMMANDS:
+    update           Update to the latest version from crates.io
+
+OPTIONS:
+    -h, --help       Print this help message and exit
+    -v, --version    Print version and exit
+
+AWS CONFIGURATION:
+    Uses the standard AWS SDK config chain.
+
+    Environment variables:
+        AWS_PROFILE           AWS profile to use
+        AWS_REGION            AWS region (overrides config)
+        AWS_DEFAULT_REGION    Fallback region if AWS_REGION is not set
+
+KEYBINDINGS:
+    /          Search/filter parameters
+    j / Down   Move selection down
+    k / Up     Move selection up
+    R          Refresh all parameters and values
+    y          Yank/copy selected value to clipboard
+    e          Edit selected value in external editor
+    a          Create new parameter
+    Ctrl+C     Quit
+
+MORE INFO:
+    https://github.com/suraj16thjan/ssmtui"
+    );
+}
+
+fn self_update() {
+    println!("Current version: {VERSION}");
+    println!("Updating ssmtui from crates.io...\n");
+
+    let status = Command::new("cargo")
+        .args(["install", "ssmtui"])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            println!("\nUpdate complete.");
+        }
+        Ok(s) => {
+            eprintln!("\ncargo install exited with {s}");
+            std::process::exit(1);
+        }
+        Err(err) => {
+            eprintln!("Failed to run cargo install: {err}");
+            eprintln!("Make sure cargo is installed and in your PATH.");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn main() -> io::Result<()> {
+    let args: Vec<String> = env::args().skip(1).collect();
+
+    for arg in &args {
+        match arg.as_str() {
+            "-h" | "--help" => {
+                print_help();
+                return Ok(());
+            }
+            "-v" | "--version" => {
+                println!("ssmtui {VERSION}");
+                return Ok(());
+            }
+            "update" => {
+                self_update();
+                return Ok(());
+            }
+            other => {
+                eprintln!("ssmtui: unknown option '{other}'");
+                eprintln!("Try 'ssmtui --help' for more information.");
+                std::process::exit(1);
+            }
+        }
+    }
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;

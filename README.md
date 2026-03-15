@@ -61,7 +61,7 @@ cargo run
 - `y` yank/copy selected value to clipboard
 - `e` edit selected value in external editor and update SSM on change
 - `a` open create-parameter popup
-- `q` or `Esc` quit
+- `Ctrl+C` quit
 
 ### Create popup
 
