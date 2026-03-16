@@ -68,7 +68,7 @@ pub fn draw_loading(frame: &mut ratatui::Frame<'_>, spinner: &str, elapsed_secs:
     frame.render_widget(Paragraph::new(lines), inner);
 }
 
-pub fn draw(frame: &mut ratatui::Frame<'_>, app: &App) {
+pub fn draw(frame: &mut ratatui::Frame<'_>, app: &mut App) {
     frame.render_widget(
         Block::new().style(Style::default().bg(BG_MAIN)),
         frame.area(),
@@ -83,6 +83,9 @@ pub fn draw(frame: &mut ratatui::Frame<'_>, app: &App) {
     draw_body(frame, root[1], app);
     if app.create_mode {
         draw_create_popup(frame, app);
+    }
+    if app.show_help {
+        draw_help_popup(frame);
     }
 }
 
@@ -288,7 +291,7 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
     );
 }
 
-fn draw_body(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
+fn draw_body(frame: &mut ratatui::Frame<'_>, area: Rect, app: &mut App) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
@@ -375,7 +378,7 @@ fn draw_left_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
     frame.render_widget(List::new(items), layout[2]);
 }
 
-fn draw_right_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
+fn draw_right_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &mut App) {
     let right_bg = Block::new().style(Style::default().bg(BG_RIGHT));
     frame.render_widget(right_bg, area);
 
@@ -402,8 +405,19 @@ fn draw_right_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
         None => String::from("No selection"),
     };
 
+    let visible_height = inner.height as usize;
+    let line_count = body.lines().count();
+    let max_scroll = if line_count > visible_height {
+        (line_count - visible_height) as u16
+    } else {
+        0
+    };
+    app.value_scroll_offset = app.value_scroll_offset.min(max_scroll);
+
     frame.render_widget(
-        Paragraph::new(body).style(Style::default().fg(FG_VALUE)),
+        Paragraph::new(body)
+            .style(Style::default().fg(FG_VALUE))
+            .scroll((app.value_scroll_offset, 0)),
         inner,
     );
 }
@@ -558,6 +572,53 @@ fn draw_create_popup(frame: &mut ratatui::Frame<'_>, app: &App) {
             .style(Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD)),
         rows[6],
     );
+}
+
+fn draw_help_popup(frame: &mut ratatui::Frame<'_>) {
+    let popup_area = centered_rect(50, 55, frame.area());
+    frame.render_widget(Clear, popup_area);
+
+    let popup = Block::new()
+        .title(Span::styled(
+            " Keybindings ",
+            Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(BORDER))
+        .style(Style::default().bg(BG_HEADER))
+        .padding(Padding::new(2, 2, 1, 1));
+    let inner = popup.inner(popup_area);
+    frame.render_widget(popup, popup_area);
+
+    let keybindings = vec![
+        ("j / ↓", "Move down"),
+        ("k / ↑", "Move up"),
+        ("Ctrl+D", "Scroll value down"),
+        ("Ctrl+U", "Scroll value up"),
+        ("/", "Search"),
+        ("a", "Add parameter"),
+        ("e", "Edit in external editor"),
+        ("y", "Copy value to clipboard"),
+        ("R", "Full refresh"),
+        ("?", "Show keybindings"),
+        ("Esc", "Close / back"),
+        ("Ctrl+C", "Quit"),
+    ];
+
+    let lines: Vec<Line> = keybindings
+        .into_iter()
+        .map(|(key, desc)| {
+            Line::from(vec![
+                Span::styled(
+                    format!("{:<12}", key),
+                    Style::default().fg(CYAN).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(desc, Style::default().fg(FG_NORMAL)),
+            ])
+        })
+        .collect();
+
+    frame.render_widget(Paragraph::new(lines), inner);
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {

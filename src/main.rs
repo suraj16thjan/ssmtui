@@ -330,6 +330,11 @@ fn run_app_loop(
                     }
                     _ => {}
                 }
+            } else if app.show_help {
+                match key.code {
+                    KeyCode::Esc => app.show_help = false,
+                    _ => {}
+                }
             } else {
                 match key.code {
                     KeyCode::Char('c')
@@ -337,6 +342,7 @@ fn run_app_loop(
                     {
                         return Ok(())
                     }
+                    KeyCode::Char('?') => app.show_help = true,
                     KeyCode::Char('/') => app.start_search(),
                     KeyCode::Char('a') => app.start_create(),
                     KeyCode::Char('R') => app.start_full_refresh(),
@@ -410,6 +416,16 @@ fn run_app_loop(
                         } else {
                             app.status = String::from("No selection to edit");
                         }
+                    }
+                    KeyCode::Char('d')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        app.scroll_value_down(10);
+                    }
+                    KeyCode::Char('u')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        app.scroll_value_up(10);
                     }
                     KeyCode::Down | KeyCode::Char('j') => app.next(),
                     KeyCode::Up | KeyCode::Char('k') => app.previous(),

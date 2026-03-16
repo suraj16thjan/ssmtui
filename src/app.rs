@@ -32,6 +32,8 @@ pub struct App {
     pub value_pool: Option<ValueWorkerPool>,
     pub pending_value_requests: HashSet<String>,
     pub full_refresh_rx: Option<mpsc::Receiver<Result<FullRefreshResult, String>>>,
+    pub value_scroll_offset: u16,
+    pub show_help: bool,
 }
 
 impl App {
@@ -90,6 +92,8 @@ impl App {
             value_pool,
             pending_value_requests: HashSet::new(),
             full_refresh_rx: None,
+            value_scroll_offset: 0,
+            show_help: false,
         };
         app.apply_filter();
         app
@@ -100,6 +104,7 @@ impl App {
             return;
         }
         self.selected = (self.selected + 1) % self.filtered_indices.len();
+        self.value_scroll_offset = 0;
     }
 
     pub fn previous(&mut self) {
@@ -111,6 +116,15 @@ impl App {
         } else {
             self.selected -= 1;
         }
+        self.value_scroll_offset = 0;
+    }
+
+    pub fn scroll_value_down(&mut self, amount: u16) {
+        self.value_scroll_offset = self.value_scroll_offset.saturating_add(amount);
+    }
+
+    pub fn scroll_value_up(&mut self, amount: u16) {
+        self.value_scroll_offset = self.value_scroll_offset.saturating_sub(amount);
     }
 
     pub fn start_search(&mut self) {
