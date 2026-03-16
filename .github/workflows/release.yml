@@ -81,6 +81,11 @@ jobs:
           mkdir -p dist
           cp "target/${{ matrix.target }}/release/ssmtui${{ matrix.ext }}" \
              "dist/ssmtui-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.ext }}"
+          # Create tar.gz for Homebrew (non-Windows only)
+          if [ "${{ matrix.ext }}" = "" ]; then
+            tar czf "dist/ssmtui-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" \
+              -C "target/${{ matrix.target }}/release" ssmtui
+          fi
 
       - name: Upload binary to GitHub Release
         uses: softprops/action-gh-release@v2
