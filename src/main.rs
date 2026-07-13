@@ -318,8 +318,8 @@ fn run_app_loop(
             if app.search_mode {
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter => app.end_search(),
-                    KeyCode::Down | KeyCode::Char('j') => app.next(),
-                    KeyCode::Up | KeyCode::Char('k') => app.previous(),
+                    KeyCode::Down => app.next(),
+                    KeyCode::Up => app.previous(),
                     KeyCode::Backspace => {
                         app.query.pop();
                         app.apply_filter();
