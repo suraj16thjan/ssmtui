@@ -18,7 +18,8 @@ A terminal UI for AWS Systems Manager Parameter Store built with `ratatui` and t
 - Browse Parameter Store names in a left panel
 - Lazy-load values in the right panel (background worker pool)
 - Refresh all parameters and values with threaded fetching
-- Search/filter parameters with `/`
+- Search/filter parameters by name with `/`
+- Ripgrep-style search across parameter values with `g` (auto-loads all values first)
 - Edit selected value in external editor (`$EDITOR` -> `vim` -> `vi`)
 - Create new parameter entries from popup (`a`)
 - Copy/yank selected value to local clipboard (`y`)
@@ -54,7 +55,8 @@ cargo run
 
 ### Main screen
 
-- `/` search/filter mode
+- `/` search/filter mode (matches parameter names)
+- `g` grep mode (matches parameter values, like ripgrep over the store's content; triggers a full refresh first if any values aren't loaded yet)
 - `j` / `Down` move selection down
 - `k` / `Up` move selection up
 - `R` refresh all parameters and values

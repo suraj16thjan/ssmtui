@@ -26,6 +26,12 @@ pub enum CreateField {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SearchScope {
+    Name,
+    Value,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ValueEditorMode {
     Insert,
     Normal,

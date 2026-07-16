@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     app::App,
-    models::CreateField,
+    models::{CreateField, SearchScope},
     text_edit::line_col_at_cursor,
 };
 
@@ -28,6 +28,13 @@ const FG_NORMAL: Color = Color::Rgb(0xA9, 0xB8, 0xE8);
 const FG_VALUE: Color = Color::Rgb(0xC3, 0xE8, 0x8D);
 const FG_LABEL: Color = Color::Rgb(0xF7, 0x8C, 0x6C);
 const HEADER_HEIGHT: u16 = 12;
+// Below this many rows there isn't enough room for both the full header and a usable body,
+// so the header drops its blank spacer lines and duplicate keybinding footer.
+const HEADER_HEIGHT_COMPACT: u16 = 8;
+const COMPACT_HEIGHT_THRESHOLD: u16 = 24;
+// Below this width the 35/65 side-by-side split leaves the parameter list too narrow to read,
+// so the list and value panel stack vertically instead (like lazygit's portrait mode).
+const NARROW_WIDTH_THRESHOLD: u16 = 100;
 
 pub fn draw_loading(frame: &mut ratatui::Frame<'_>, spinner: &str, elapsed_secs: u64) {
     frame.render_widget(
@@ -74,12 +81,19 @@ pub fn draw(frame: &mut ratatui::Frame<'_>, app: &mut App) {
         frame.area(),
     );
 
+    let compact_header = frame.area().height < COMPACT_HEIGHT_THRESHOLD;
+    let header_height = if compact_header {
+        HEADER_HEIGHT_COMPACT
+    } else {
+        HEADER_HEIGHT
+    };
+
     let root = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(HEADER_HEIGHT), Constraint::Min(0)])
+        .constraints([Constraint::Length(header_height), Constraint::Min(0)])
         .split(frame.area());
 
-    draw_header(frame, root[0], app);
+    draw_header(frame, root[0], app, compact_header);
     draw_body(frame, root[1], app);
     if app.create_mode {
         draw_create_popup(frame, app);
@@ -89,7 +103,7 @@ pub fn draw(frame: &mut ratatui::Frame<'_>, app: &mut App) {
     }
 }
 
-fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
+fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App, compact: bool) {
     let header = Block::new()
         .style(Style::default().bg(BG_HEADER))
         .borders(Borders::BOTTOM)
@@ -126,38 +140,50 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
         .unwrap_or_else(|| "default".to_string());
     let region = app.aws_region.clone();
 
-    let rows = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(5),
-            Constraint::Length(1),
-            Constraint::Min(0),
-        ])
-        .split(inner);
+    let (title_row, selected_row, info_row, status_row, footer_row) = if compact {
+        let rows = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(5),
+                Constraint::Length(1),
+                Constraint::Min(0),
+            ])
+            .split(inner);
+        (rows[0], rows[1], rows[2], rows[3], None)
+    } else {
+        let rows = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(5),
+                Constraint::Length(1),
+                Constraint::Min(0),
+            ])
+            .split(inner);
+        (rows[0], rows[3], rows[4], rows[5], Some(rows[6]))
+    };
 
     frame.render_widget(
         Paragraph::new("AWS SSM PARAMETER STORE")
             .style(Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD)),
-        rows[0],
+        title_row,
     );
-
-    frame.render_widget(Paragraph::new(""), rows[1]);
-    frame.render_widget(Paragraph::new(""), rows[2]);
 
     frame.render_widget(
         Paragraph::new(format!("SELECTED: {selected_name}"))
             .style(Style::default().fg(FG_TITLE).add_modifier(Modifier::BOLD)),
-        rows[3],
+        selected_row,
     );
 
     let info_cols = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-        .split(rows[4]);
+        .split(info_row);
 
     let left_lines = vec![
         Line::from(vec![
@@ -246,6 +272,12 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
                 Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD),
             ),
             Span::raw(" Search/Filter"),
+            Span::raw("   "),
+            Span::styled(
+                "<g>",
+                Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Grep values"),
         ]),
         Line::from(vec![
             Span::styled(
@@ -280,25 +312,34 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
 
     frame.render_widget(
         Paragraph::new(format!("Status: {}", app.status)).style(Style::default().fg(FG_NORMAL)),
-        rows[5],
+        status_row,
     );
 
-    frame.render_widget(
-        Paragraph::new("</> search/filter  <R> refresh all  <a> add new  <y> yank  <e> edit  <C-c> quit")
-            .style(Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD))
-            .alignment(Alignment::Right),
-        rows[6],
-    );
+    if let Some(footer_row) = footer_row {
+        frame.render_widget(
+            Paragraph::new("</> search/filter  <g> grep values  <R> refresh all  <a> add new  <y> yank  <e> edit  <C-c> quit")
+                .style(Style::default().fg(FG_ACCENT).add_modifier(Modifier::BOLD))
+                .alignment(Alignment::Right),
+            footer_row,
+        );
+    }
 }
 
 fn draw_body(frame: &mut ratatui::Frame<'_>, area: Rect, app: &mut App) {
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
-        .split(area);
+    let sections = if area.width < NARROW_WIDTH_THRESHOLD {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+            .split(area)
+    } else {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
+            .split(area)
+    };
 
-    draw_left_panel(frame, columns[0], app);
-    draw_right_panel(frame, columns[1], app);
+    draw_left_panel(frame, sections[0], app);
+    draw_right_panel(frame, sections[1], app);
 }
 
 fn draw_left_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
@@ -327,7 +368,14 @@ fn draw_left_panel(frame: &mut ratatui::Frame<'_>, area: Rect, app: &App) {
         layout[0],
     );
 
-    let search_label = if app.search_mode { "SEARCH" } else { "FILTER" };
+    let search_label = if app.search_mode {
+        match app.search_scope {
+            SearchScope::Name => "SEARCH",
+            SearchScope::Value => "GREP",
+        }
+    } else {
+        "FILTER"
+    };
     let search_line = format!(
         "{search_label}: /{}    Total: {}",
         app.query,
@@ -595,7 +643,8 @@ fn draw_help_popup(frame: &mut ratatui::Frame<'_>) {
         ("k / ↑", "Move up"),
         ("Ctrl+D", "Scroll value down"),
         ("Ctrl+U", "Scroll value up"),
-        ("/", "Search"),
+        ("/", "Search by name"),
+        ("g", "Grep parameter values"),
         ("a", "Add parameter"),
         ("e", "Edit in external editor"),
         ("y", "Copy value to clipboard"),

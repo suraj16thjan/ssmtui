@@ -344,6 +344,7 @@ fn run_app_loop(
                     }
                     KeyCode::Char('?') => app.show_help = true,
                     KeyCode::Char('/') => app.start_search(),
+                    KeyCode::Char('g') => app.start_grep(),
                     KeyCode::Char('a') => app.start_create(),
                     KeyCode::Char('R') => app.start_full_refresh(),
                     KeyCode::Char('y') => {

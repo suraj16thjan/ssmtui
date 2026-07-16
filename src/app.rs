@@ -11,7 +11,10 @@ use crate::{
         create_parameter_in_ssm, load_all_parameters_from_ssm, load_parameter_names_from_ssm,
         start_value_worker_pool,
     },
-    models::{CreateField, FullRefreshResult, Parameter, ParameterMeta, ValueEditorMode, ValueWorkerPool},
+    models::{
+        CreateField, FullRefreshResult, Parameter, ParameterMeta, SearchScope, ValueEditorMode,
+        ValueWorkerPool,
+    },
 };
 
 pub struct App {
@@ -19,6 +22,7 @@ pub struct App {
     pub all_parameters: Vec<Parameter>,
     pub filtered_indices: Vec<usize>,
     pub search_mode: bool,
+    pub search_scope: SearchScope,
     pub query: String,
     pub status: String,
     pub aws_region: String,
@@ -79,6 +83,7 @@ impl App {
             all_parameters,
             filtered_indices: Vec::new(),
             search_mode: false,
+            search_scope: SearchScope::Name,
             query: String::new(),
             status,
             aws_region: configured_region,
@@ -129,7 +134,24 @@ impl App {
 
     pub fn start_search(&mut self) {
         self.search_mode = true;
+        self.search_scope = SearchScope::Name;
         self.query.clear();
+        self.apply_filter();
+    }
+
+    /// Ripgrep-style search: filters parameters by matching the query against their
+    /// SSM values rather than their names. Values are lazy-loaded on selection, so this
+    /// triggers a full refresh first if any value hasn't been fetched yet, otherwise the
+    /// grep would silently miss unloaded parameters.
+    pub fn start_grep(&mut self) {
+        self.search_mode = true;
+        self.search_scope = SearchScope::Value;
+        self.query.clear();
+        if self.all_parameters.iter().any(|p| p.value.is_none()) {
+            self.start_full_refresh();
+        }
+        self.status =
+            String::from("Grep mode: type to search parameter values (loading full values in background)");
         self.apply_filter();
     }
 
@@ -144,11 +166,18 @@ impl App {
             .iter()
             .enumerate()
             .filter_map(|(i, value)| {
-                if needle.is_empty() || value.name.to_ascii_lowercase().contains(&needle) {
-                    Some(i)
+                let matches = if needle.is_empty() {
+                    true
                 } else {
-                    None
-                }
+                    match self.search_scope {
+                        SearchScope::Name => value.name.to_ascii_lowercase().contains(&needle),
+                        SearchScope::Value => value
+                            .value
+                            .as_deref()
+                            .is_some_and(|v| v.to_ascii_lowercase().contains(&needle)),
+                    }
+                };
+                if matches { Some(i) } else { None }
             })
             .collect();
 
