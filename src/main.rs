@@ -315,6 +315,13 @@ fn run_app_loop(
                 continue;
             }
 
+            // Global Ctrl+C quit — works in any mode
+            if key.modifiers.contains(KeyModifiers::CONTROL)
+                && matches!(key.code, KeyCode::Char('c'))
+            {
+                return Ok(());
+            }
+
             if app.search_mode {
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter => app.end_search(),
@@ -337,11 +344,6 @@ fn run_app_loop(
                 }
             } else {
                 match key.code {
-                    KeyCode::Char('c')
-                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        return Ok(())
-                    }
                     KeyCode::Char('?') => app.show_help = true,
                     KeyCode::Char('/') => app.start_search(),
                     KeyCode::Char('g') => app.start_grep(),

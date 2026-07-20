@@ -282,11 +282,8 @@ impl App {
                 },
             });
 
-            self.query.clear();
-            self.apply_filter();
-            if let Some(pos) = self.filtered_indices.iter().position(|idx| *idx == new_index) {
-                self.selected = pos;
-            }
+            // Will be positioned precisely by the apply_filter below
+            let _ = new_index;
         }
 
         self.query.clear();
@@ -345,7 +342,10 @@ impl App {
             {
                 match update.value {
                     Ok(value) => param.value = Some(value),
-                    Err(err) => param.value = Some(format!("<error: {err}>")),
+                    Err(err) => {
+                        // Leave value as None so the next prefetch can retry
+                        self.status = format!("Value fetch error for {}: {err}", update.name);
+                    }
                 }
             }
         }

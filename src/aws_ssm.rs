@@ -60,7 +60,7 @@ pub fn load_parameter_names_from_ssm(
 
         all_params.sort_by(|a, b| a.name.cmp(&b.name));
         let count = all_params.len();
-        let thread_count = count / 30 + 1;
+        let thread_count = (count / 30 + 1).min(16);
 
         Ok((all_params, count, thread_count))
     })
@@ -113,7 +113,7 @@ pub fn load_all_parameters_from_ssm(
 
         names.sort();
         let count = names.len();
-        let thread_count = count / 30 + 1;
+        let thread_count = (count / 30 + 1).min(16);
         let ordered_names = names.clone();
 
         let mut buckets = vec![Vec::<String>::new(); thread_count];

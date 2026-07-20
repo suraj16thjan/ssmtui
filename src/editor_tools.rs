@@ -32,7 +32,14 @@ pub fn open_value_in_editor(
     match (edit_result, resume_result) {
         (Ok(edit_out), Ok(())) => Ok(edit_out),
         (Err(edit_err), Ok(())) => Err(edit_err),
-        (Ok(_), Err(resume_err)) => Err(resume_err),
+        (Ok(_edit_out), Err(resume_err)) => {
+            // Terminal restore failed but we have edits — log both, prefer returning
+            // the IO error so the caller knows the terminal is in a broken state.
+            // The caller (main.rs) will attempt its own restore on the way out.
+            eprintln!("Warning: terminal restore failed after edit: {resume_err}");
+            eprintln!("Edited content may be lost. Error: {resume_err}");
+            Err(resume_err)
+        }
         (Err(edit_err), Err(resume_err)) => Err(io::Error::other(format!(
             "editor error: {edit_err}; terminal restore error: {resume_err}"
         ))),

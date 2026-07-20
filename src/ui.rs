@@ -597,8 +597,9 @@ fn draw_create_popup(frame: &mut ratatui::Frame<'_>, app: &App) {
         frame.set_cursor_position((cursor_x, cursor_y));
     } else if app.create_field == CreateField::Name {
         let base_x = rows[1].x + 7;
+        let name_cursor_col = app.create_name[..app.create_name_cursor.min(app.create_name.len())].chars().count();
         let cursor_x = base_x
-            .saturating_add(app.create_name.chars().count() as u16)
+            .saturating_add(name_cursor_col as u16)
             .min(rows[1].right().saturating_sub(1));
         frame.set_cursor_position((cursor_x, rows[1].y));
     }
